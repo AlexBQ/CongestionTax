@@ -62,7 +62,6 @@ namespace CongestionTax.Controllers
             return _vehicles;
         }
 
-
         [HttpPut]
         [Route("AddToll")]
         public IEnumerable<DateTime> AddToll(string registrationId, DateTime dt)
