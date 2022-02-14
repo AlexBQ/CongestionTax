@@ -8,7 +8,11 @@ namespace CongestionTax.Controllers
     {
         private CongestionTaxCalculator _taxCalculator;
 
-        private static List<Vehicle> _vehicles = new List<Vehicle>();
+        private static List<Vehicle> _vehicles = new List<Vehicle>
+        {
+            new Motorbike("MCA123"),
+            new Car("CAR321"),
+        };
         private static List<DateTime> _vehicleTimes = new List<DateTime> {
             //new DateTime(2013,1,14,21,00,00), // 0
             //new DateTime(2013,1,15,21,00,00), // 0
@@ -27,11 +31,63 @@ namespace CongestionTax.Controllers
             //new DateTime(2013,3,28,14,07,27), // 8
             //new DateTime(2013,3,26,14,25,00), // 8
         };
+        private static Dictionary<Vehicle, List<DateTime>> _vehicleDict = new Dictionary<Vehicle, List<DateTime>>();
 
         public CongestionTaxController()
         {
             _taxCalculator = new CongestionTaxCalculator();
         }
+
+        [HttpPut]
+        [Route("AddVehicle")]
+        public List<Vehicle> AddVehicle(string registrationId, string vehicleType)
+        {
+            Vehicle vehicle;
+            if (vehicleType == "Motorbike")
+            {
+                vehicle = new Motorbike(registrationId);
+            }
+            else if (vehicleType == "Car")
+            {
+                vehicle = new Car(registrationId);
+            }
+            else
+            {
+                throw new Exception("Bad");
+            }
+
+            if(!_vehicles.Any(v => v.RegistrationNumber == vehicle.RegistrationNumber))
+                _vehicles.Add(vehicle);
+
+            return _vehicles;
+        }
+
+
+        [HttpPut]
+        [Route("AddToll")]
+        public IEnumerable<DateTime> AddToll(string registrationId, DateTime dt)
+        {
+            var v = _vehicles.Where(w => w.RegistrationNumber == registrationId).FirstOrDefault();
+            if (v == null)
+            {
+                throw new Exception($"{v} does not exist in dictionary");
+            }
+            List<DateTime> dateTimeList;
+            _vehicleDict.TryGetValue(v, out dateTimeList);
+            if(dateTimeList == null)
+            {
+                var l = new List<DateTime>();
+                l.Add(dt);
+                _vehicleDict.Add(v,l);
+            }
+            else
+            {
+                dateTimeList.Add(dt);
+            }
+            _vehicleDict.TryGetValue(v, out dateTimeList);
+            return dateTimeList;
+        }
+
 
         [HttpPut]
         [Route("AddVehicleTime")]
@@ -45,8 +101,6 @@ namespace CongestionTax.Controllers
         [Route("GetVehicles")]
         public IEnumerable<Vehicle> GetVehicles()
         {
-            var mb = new Motorbike();
-            _vehicles.Add(mb);
             return _vehicles;
             //return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             //{
@@ -61,7 +115,7 @@ namespace CongestionTax.Controllers
         [Route("IsTollFreeVehicle")]
         public Boolean IsTollFreeVehicle(string vehicle)
         {
-            var mb = new Motorbike();
+            var mb = new Motorbike("Test123");
 
             var k = _taxCalculator.IsTollFreeVehicle(mb);
             return k;
@@ -76,17 +130,17 @@ namespace CongestionTax.Controllers
 
         [HttpPost]
         [Route("GetTollFee")]
-        public int GetTollFee(DateTime date, string vehicleType)
+        public int GetTollFee(DateTime date, string vehicleType, string registrationId)
         {
             Vehicle vc;
             if (vehicleType == "Motorbike")
             {
-                vc = new Motorbike();
+                vc = new Motorbike(registrationId);
                 return _taxCalculator.GetTollFee(date, vc);
             }
             else if (vehicleType == "Car")
             {
-                vc = new Car();
+                vc = new Car(registrationId);
                 return _taxCalculator.GetTollFee(date, vc);
             }
             else
@@ -98,25 +152,24 @@ namespace CongestionTax.Controllers
 
         [HttpPost]
         [Route("GetTax")]
-        public int GetTax(string vehicleType)
+        public int GetTax(string vehicleType, string registrationId)
         {
             var t = _vehicleTimes.ToArray();
-            Vehicle vc;
-            if (vehicleType == "Motorbike")
+            var vehicle = _vehicles.Where(w => w.RegistrationNumber == registrationId).FirstOrDefault();
+            if(vehicle == null)
             {
-                vc = new Motorbike();
-                return _taxCalculator.GetTax(vc,t);
+                throw new Exception($"{vehicle} does not exist in dictionary");
             }
-            else if (vehicleType == "Car")
+            List<DateTime> datesList;
+            _vehicleDict.TryGetValue(vehicle, out datesList);
+            if(datesList.Count >0)
             {
-                vc = new Car();
-                return _taxCalculator.GetTax(vc, t);
+                return _taxCalculator.GetTax(vehicle, datesList.ToArray());
             }
             else
             {
-                throw new Exception("Bad");
+                throw new Exception($"datesList is empty for vehicle: {vehicle}");
             }
-
         }
     }
 }
