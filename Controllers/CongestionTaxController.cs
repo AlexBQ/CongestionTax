@@ -56,7 +56,7 @@ namespace CongestionTax.Controllers
                 throw new Exception("Bad");
             }
 
-            if(!_vehicles.Any(v => v.RegistrationNumber == vehicle.RegistrationNumber))
+            if (!_vehicles.Any(v => v.RegistrationNumber == vehicle.RegistrationNumber))
                 _vehicles.Add(vehicle);
 
             return _vehicles;
@@ -74,11 +74,11 @@ namespace CongestionTax.Controllers
             }
             List<DateTime> dateTimeList;
             _vehicleDict.TryGetValue(v, out dateTimeList);
-            if(dateTimeList == null)
+            if (dateTimeList == null)
             {
                 var l = new List<DateTime>();
                 l.Add(dt);
-                _vehicleDict.Add(v,l);
+                _vehicleDict.Add(v, l);
             }
             else
             {
@@ -123,7 +123,7 @@ namespace CongestionTax.Controllers
 
         [HttpGet]
         [Route("IsTollFreeDate")]
-        public Boolean IsTollFreeDate(DateTime date)
+        public Boolean IsTollFreeDate(DateTime date) // only works for 2013
         {
             return _taxCalculator.IsTollFreeDate(date);
         }
@@ -152,19 +152,19 @@ namespace CongestionTax.Controllers
 
         [HttpPost]
         [Route("GetTax")]
-        public int GetTax(string vehicleType, string registrationId)
+        public int GetTax(string vehicleType, string registrationId, DateTime day)
         {
             var t = _vehicleTimes.ToArray();
             var vehicle = _vehicles.Where(w => w.RegistrationNumber == registrationId).FirstOrDefault();
-            if(vehicle == null)
+            if (vehicle == null)
             {
                 throw new Exception($"{vehicle} does not exist in dictionary");
             }
             List<DateTime> datesList;
             _vehicleDict.TryGetValue(vehicle, out datesList);
-            if(datesList.Count >0)
+            if (datesList.Count > 0)
             {
-                return _taxCalculator.GetTax(vehicle, datesList.ToArray());
+                return _taxCalculator.GetTax(vehicle, datesList.Where(d => d.Year == day.Year && d.Month == day.Month && d.Day == day.Day).ToArray());
             }
             else
             {
