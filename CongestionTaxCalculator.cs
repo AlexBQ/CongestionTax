@@ -12,17 +12,13 @@
 
         public int GetTax(Vehicle vehicle, DateTime[] dates)
         {
-            dates = dates.OrderBy(d => d.TimeOfDay).ToArray(); // Sort dates first.
+            dates = dates.OrderBy(d => d.TimeOfDay).ToArray();
 
-            // initialize
             DateTime intervalStart = dates.First();
             DateTime withinHour = intervalStart.AddMinutes(60);
-
             int totalFee = 0;
 
-            var dt = dates.Skip(1);
-
-            foreach (DateTime date in dt)
+            foreach (DateTime date in dates)
             {
                 int nextFee = GetTollFee(date, vehicle);
                 int tempFee = GetTollFee(intervalStart, vehicle);
@@ -44,12 +40,11 @@
             return totalFee;
         }
 
-        public bool IsTollFreeVehicle(Vehicle vehicle) //to private
+        public bool IsTollFreeVehicle(Vehicle vehicle) //changed to public for api access
         {
             if (vehicle == null) return false;
             String vehicleType = vehicle.GetVehicleType();
-            // Equals does not work here
-            return vehicleType.Equals(TollFreeVehicles.Motorcycle.ToString()) ||
+            return vehicleType.Equals(TollFreeVehicles.Motorbike.ToString()) ||
                    vehicleType.Equals(TollFreeVehicles.Tractor.ToString()) ||
                    vehicleType.Equals(TollFreeVehicles.Emergency.ToString()) ||
                    vehicleType.Equals(TollFreeVehicles.Diplomat.ToString()) ||
@@ -76,7 +71,7 @@
             else return 0;
         }
 
-        public Boolean IsTollFreeDate(DateTime date) //to private
+        public Boolean IsTollFreeDate(DateTime date) //changed to public for api access
         {
             int year = date.Year;
             int month = date.Month;
@@ -103,7 +98,7 @@
 
         private enum TollFreeVehicles
         {
-            Motorcycle = 0,
+            Motorbike = 0,
             Tractor = 1,
             Emergency = 2,
             Diplomat = 3,

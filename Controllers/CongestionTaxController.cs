@@ -4,33 +4,11 @@ namespace CongestionTax.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class CongestionTaxController
+    public class CongestionTaxController : ControllerBase
     {
         private CongestionTaxCalculator _taxCalculator;
 
-        private static List<Vehicle> _vehicles = new List<Vehicle>
-        {
-            new Motorbike("MCA123"),
-            new Car("CAR321"),
-        };
-        private static List<DateTime> _vehicleTimes = new List<DateTime> {
-            //new DateTime(2013,1,14,21,00,00), // 0
-            //new DateTime(2013,1,15,21,00,00), // 0
-            //new DateTime(2013,2,07,06,23,27), // 8
-            //new DateTime(2013,2,07,15,27,00), // 13 
-            new DateTime(2013,2,08,06,27,00), // 8
-            new DateTime(2013,2,08,06,20,27), // 8
-            new DateTime(2013,2,08,14,35,00), // 8
-            new DateTime(2013,2,08,15,29,00), // 13
-            new DateTime(2013,2,08,15,47,00), // 18
-            new DateTime(2013,2,08,16,01,00), // 18
-            new DateTime(2013,2,08,16,48,00), // 18
-            new DateTime(2013,2,08,17,49,00), // 13
-            new DateTime(2013,2,08,18,29,00), // 8
-            new DateTime(2013,2,08,18,35,00), // 0
-            //new DateTime(2013,3,28,14,07,27), // 8
-            //new DateTime(2013,3,26,14,25,00), // 8
-        };
+        private static List<Vehicle> _vehicles = new List<Vehicle>();
         private static Dictionary<Vehicle, List<DateTime>> _vehicleDict = new Dictionary<Vehicle, List<DateTime>>();
 
         public CongestionTaxController()
@@ -40,135 +18,134 @@ namespace CongestionTax.Controllers
 
         [HttpPut]
         [Route("AddVehicle")]
-        public List<Vehicle> AddVehicle(string registrationId, string vehicleType)
+        public async Task<ActionResult<List<Vehicle>>> AddVehicle(string vehicleType, string registrationId)
         {
             Vehicle vehicle;
             if (vehicleType == "Motorbike")
-            {
                 vehicle = new Motorbike(registrationId);
-            }
             else if (vehicleType == "Car")
-            {
                 vehicle = new Car(registrationId);
-            }
+            else if (vehicleType == "Diplomat")
+                vehicle = new Diplomat(registrationId);
+            else if (vehicleType == "Emergency")
+                vehicle = new Emergency(registrationId);
+            else if (vehicleType == "Foreign")
+                vehicle = new Foreign(registrationId);
+            else if (vehicleType == "Military")
+                vehicle = new Military(registrationId);
+            else if (vehicleType == "Tractor")
+                vehicle = new Tractor(registrationId);
             else
-            {
-                throw new Exception("Bad");
-            }
+                return BadRequest($"Not a valid vehicleType: {vehicleType}");
 
             if (!_vehicles.Any(v => v.RegistrationNumber == vehicle.RegistrationNumber))
                 _vehicles.Add(vehicle);
 
-            return _vehicles;
+            return Ok(_vehicles);
         }
 
         [HttpPut]
         [Route("AddToll")]
-        public IEnumerable<DateTime> AddToll(string registrationId, DateTime dt)
+        public async Task<ActionResult<IEnumerable<DateTime>>> AddToll(string registrationId, DateTime dt)
         {
-            var v = _vehicles.Where(w => w.RegistrationNumber == registrationId).FirstOrDefault();
-            if (v == null)
+            var vehicle = _vehicles.Where(w => w.RegistrationNumber == registrationId).FirstOrDefault();
+            if (vehicle == null)
             {
-                throw new Exception($"{v} does not exist in dictionary");
+                return NotFound($"{vehicle} does not exist in dictionary");
             }
             List<DateTime> dateTimeList;
-            _vehicleDict.TryGetValue(v, out dateTimeList);
+            _vehicleDict.TryGetValue(vehicle, out dateTimeList);
             if (dateTimeList == null)
             {
                 var l = new List<DateTime>();
                 l.Add(dt);
-                _vehicleDict.Add(v, l);
+                _vehicleDict.Add(vehicle, l);
             }
             else
             {
                 dateTimeList.Add(dt);
             }
-            _vehicleDict.TryGetValue(v, out dateTimeList);
-            return dateTimeList;
-        }
+            _vehicleDict.TryGetValue(vehicle, out dateTimeList);
 
-
-        [HttpPut]
-        [Route("AddVehicleTime")]
-        public IEnumerable<DateTime> AddVehicleTime(DateTime dt)
-        {
-            _vehicleTimes.Add(dt);
-            return _vehicleTimes;
+            return Ok(dateTimeList);
         }
 
         [HttpGet]
         [Route("GetVehicles")]
-        public IEnumerable<Vehicle> GetVehicles()
+        public async Task<ActionResult<IEnumerable<Vehicle>>> GetVehicles()
         {
-            return _vehicles;
-            //return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            //{
-            //    Date = DateTime.Now.AddDays(index),
-            //    TemperatureC = Random.Shared.Next(-20, 55),
-            //    Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            //})
-            //.ToArray();
+            return Ok(_vehicles);
         }
 
         [HttpGet]
         [Route("IsTollFreeVehicle")]
-        public Boolean IsTollFreeVehicle(string vehicle)
+        public async Task<ActionResult<Boolean>> IsTollFreeVehicle(string vehicleType, string registrationId)
         {
-            var mb = new Motorbike("Test123");
-
-            var k = _taxCalculator.IsTollFreeVehicle(mb);
-            return k;
+            Vehicle vehicle;
+            if (vehicleType == "Motorbike")
+                vehicle = new Motorbike(registrationId);
+            else if (vehicleType == "Car")
+                vehicle = new Car(registrationId);
+            else if (vehicleType == "Diplomat")
+                vehicle = new Diplomat(registrationId);
+            else if (vehicleType == "Emergency")
+                vehicle = new Emergency(registrationId);
+            else if (vehicleType == "Foreign")
+                vehicle = new Foreign(registrationId);
+            else if (vehicleType == "Military")
+                vehicle = new Military(registrationId);
+            else if (vehicleType == "Tractor")
+                vehicle = new Tractor(registrationId);
+            else
+                return BadRequest($"Not a valid vehicleType: {vehicleType}");
+            return Ok(_taxCalculator.IsTollFreeVehicle(vehicle));
         }
 
         [HttpGet]
         [Route("IsTollFreeDate")]
-        public Boolean IsTollFreeDate(DateTime date) // only works for 2013
+        public async Task<ActionResult<Boolean>> IsTollFreeDate(DateTime date)
         {
-            return _taxCalculator.IsTollFreeDate(date);
+            if (date.Year != 2013)
+                return BadRequest("Calculations are only supported for year 2013");
+            return Ok(_taxCalculator.IsTollFreeDate(date));
         }
 
         [HttpPost]
         [Route("GetTollFee")]
-        public int GetTollFee(DateTime date, string vehicleType, string registrationId)
+        public async Task<ActionResult<int>> GetTollFee(string vehicleType, string registrationId, DateTime date)
         {
-            Vehicle vc;
+            Vehicle vehicle;
             if (vehicleType == "Motorbike")
-            {
-                vc = new Motorbike(registrationId);
-                return _taxCalculator.GetTollFee(date, vc);
-            }
+                vehicle = new Motorbike(registrationId);
             else if (vehicleType == "Car")
-            {
-                vc = new Car(registrationId);
-                return _taxCalculator.GetTollFee(date, vc);
-            }
+                vehicle = new Car(registrationId);
+            else if (vehicleType == "Diplomat")
+                vehicle = new Diplomat(registrationId);
+            else if (vehicleType == "Emergency")
+                vehicle = new Emergency(registrationId);
+            else if (vehicleType == "Foreign")
+                vehicle = new Foreign(registrationId);
+            else if (vehicleType == "Military")
+                vehicle = new Military(registrationId);
+            else if (vehicleType == "Tractor")
+                vehicle = new Tractor(registrationId);
             else
-            {
-                throw new Exception("Bad");
-            }
-
+                return BadRequest($"Not a valid vehicleType: {vehicleType}");
+            return Ok(_taxCalculator.GetTollFee(date, vehicle));
         }
 
         [HttpPost]
         [Route("GetTax")]
-        public int GetTax(string vehicleType, string registrationId, DateTime day)
+        public async Task<ActionResult<int>> GetTax(string registrationId, DateTime day)
         {
-            var t = _vehicleTimes.ToArray();
             var vehicle = _vehicles.Where(w => w.RegistrationNumber == registrationId).FirstOrDefault();
             if (vehicle == null)
-            {
-                throw new Exception($"{vehicle} does not exist in dictionary");
-            }
-            List<DateTime> datesList;
-            _vehicleDict.TryGetValue(vehicle, out datesList);
-            if (datesList.Count > 0)
-            {
-                return _taxCalculator.GetTax(vehicle, datesList.Where(d => d.Year == day.Year && d.Month == day.Month && d.Day == day.Day).ToArray());
-            }
+                return NotFound($"{vehicle} does not exist in dictionary");
+
+            if (_vehicleDict.TryGetValue(vehicle, out var datesList))
+                return Ok(_taxCalculator.GetTax(vehicle, datesList.Where(d => d.Year == day.Year && d.Month == day.Month && d.Day == day.Day).ToArray()));
             else
-            {
-                throw new Exception($"datesList is empty for vehicle: {vehicle}");
-            }
+                return NotFound($"datesList is empty for vehicle: {vehicle}");
         }
     }
 }
